@@ -17,7 +17,7 @@ const done = (name: string, finishedAgo: number, wait: number, result = "succeed
   definition: { name },
 });
 // Örnek bağlantı; gerçek veride pipeline çalıştırmasının adresi gelir.
-const link = (name: string) => ({ web: { href: `#ornek-calistirma/${name}` } });
+const link = (name: string) => ({ web: { href: `https://ornek.invalid/calistirma/${encodeURIComponent(name)}` } });
 const running = (name: string, startedAgo: number, agent: string): JobRequest => ({
   requestId: nextId++,
   queueTime: ago(startedAgo + 20),
@@ -56,7 +56,8 @@ function build(): PoolData[] {
         agent("BLD-WIN-01", "2.210.1", { assignedRequest: r1 }),
         agent("BLD-WIN-02", "2.210.1", { assignedRequest: r2 }),
         agent("BLD-WIN-03", "2.210.1", {
-          userCapabilities: { "SonarScanner": "5.0", "ekip": "kredi" }, lastCompletedRequest: done("HesapServisi-CI", 600, 12) }),
+          // NPM_TOKEN gizli görünen bir ad: değeri sayfada maskelenir.
+          userCapabilities: { "SonarScanner": "5.0", "ekip": "kredi", "NPM_TOKEN": "ornek-deger" }, lastCompletedRequest: done("HesapServisi-CI", 600, 12) }),
         agent("BLD-WIN-04", "2.195.0", {
           status: "offline",
           statusChangedOn: ago(90000),

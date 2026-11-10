@@ -35,6 +35,7 @@ import {
   PoolSummary,
   QueueGroup,
   requestState,
+  safeHref,
   shortOs,
   sortByHealth,
   STALE_SEC,
@@ -81,7 +82,7 @@ function Tile(props: { label: string; value: React.ReactNode; tone?: Exclude<Hea
 function JobName({ job, label }: { job: JobRequest; label?: string }) {
   const t = useStrings();
   const name = label ?? job.definition?.name ?? t.request(job.requestId);
-  const href = job.owner?._links?.web?.href ?? job.definition?._links?.web?.href;
+  const href = safeHref(job.owner?._links?.web?.href) ?? safeHref(job.definition?._links?.web?.href);
   return href ? (
     <a className="aph-joblink" href={href} target="_blank" rel="noopener noreferrer">
       {name}
@@ -426,8 +427,8 @@ function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; ur
             )}
             {!data.error && data.agents.length === 0 && <div className="aph-muted aph-note">{t.emptyPool}</div>}
             <DriftTable agents={data.agents} />
-            {props.url && (
-              <a className="aph-link" href={props.url} target="_blank" rel="noopener noreferrer">
+            {safeHref(props.url) && (
+              <a className="aph-link" href={safeHref(props.url)} target="_blank" rel="noopener noreferrer">
                 {t.openPoolSettings}
               </a>
             )}
@@ -539,6 +540,7 @@ function App(props: { source: DataSource; demo: boolean; extra?: Record<string, 
   const [hideInactive, setHideInactive] = React.useState(false);
   const [scope, setScope] = React.useState<PoolScope>("all");
 
+  const lastRefresh = React.useRef(0);
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -547,7 +549,8 @@ function App(props: { source: DataSource; demo: boolean; extra?: Record<string, 
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
-      setUpdated(Date.now());
+      lastRefresh.current = Date.now();
+      setUpdated(lastRefresh.current);
       setLoading(false);
     }
   }, [source]);
@@ -558,8 +561,19 @@ function App(props: { source: DataSource; demo: boolean; extra?: Record<string, 
 
   React.useEffect(() => {
     if (!auto) return;
-    const timer = window.setInterval(refresh, REFRESH_MS);
-    return () => window.clearInterval(timer);
+    // Sekme arka plandayken sunucuya istek atılmaz; öne gelince veri eskiyse hemen yenilenir.
+    const visible = () => document.visibilityState === "visible";
+    const timer = window.setInterval(() => {
+      if (visible()) refresh();
+    }, REFRESH_MS);
+    const onVisibility = () => {
+      if (visible() && Date.now() - lastRefresh.current >= REFRESH_MS) refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [auto, refresh]);
 
   const now = updated;

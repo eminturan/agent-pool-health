@@ -2,10 +2,16 @@ import { Strings } from "./i18n";
 import { agentState, findUnusedAgents, shortOs } from "./metrics";
 import { PoolData } from "./types";
 
-/** Hücreleri CSV satırlarına çevirir; ayraç, tırnak ya da satır sonu içeren hücre tırnaklanır. */
+/**
+ * Hücreleri CSV satırlarına çevirir; ayraç, tırnak ya da satır sonu içeren hücre tırnaklanır.
+ * Pipeline ve agent adlarını kullanıcılar belirler: =, +, -, @ ile başlayan hücreyi Excel formül
+ * olarak çalıştırır. Böyle hücrelerin başına tek tırnak eklenir, böylece düz metin kalır.
+ */
 export function toCsv(rows: string[][], separator: string): string {
-  const cell = (value: string) =>
-    value.includes(separator) || /["\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  const cell = (raw: string) => {
+    const value = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
+    return value.includes(separator) || /["\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  };
   return rows.map((row) => row.map(cell).join(separator)).join("\r\n");
 }
 

@@ -65,6 +65,27 @@ in every project.
 The page shows the pools the signed-in user is allowed to see. A user without the Reader role on
 a pool sees a per-pool warning instead of its agents.
 
+## Security
+
+- **Read-only.** The extension makes only GET requests with the `vso.agentpools` scope. It cannot
+  change agents, pools or jobs.
+- **The user's own permissions apply.** Every request is made as the signed-in user; the server
+  decides what that user may see. The access token is sent only to the collection URL and is not
+  stored or logged.
+- **What a pool reader can see.** The queue lists the pipelines of every project that uses a
+  pool, so a user may see the name of a pipeline in a project they cannot open. This is decided by
+  the Reader role on the pool (Collection Settings → Agent pools → Security), as in Azure DevOps'
+  own pool pages.
+- **Secrets in capabilities are masked.** Agents report the environment variables of their
+  machine as capabilities. Values of capabilities whose name looks like a secret (token,
+  password, secret, key, credential, connection string, auth, cert, PAT) and credentials embedded
+  in URLs are replaced with `••••••` everywhere on the page. Name-based masking cannot catch a
+  secret stored under an innocent name; keep secrets out of agent environment variables.
+- **CSV export is safe to open in Excel.** Cells that start with `=`, `+`, `-` or `@` are
+  prefixed with a single quote so that a pipeline or agent name cannot run as a formula.
+- **Links.** Only `http` and `https` addresses are rendered as links.
+- **Server load.** The page stops refreshing while its browser tab is in the background.
+
 ## Development
 
 ```bash

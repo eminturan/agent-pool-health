@@ -13,8 +13,11 @@ import {
   inScope,
   isOutdated,
   latestVersion,
+  MASK,
+  maskCapability,
   occupancy,
   requestState,
+  safeHref,
   shortOs,
   sortByHealth,
   summarizeAll,
@@ -397,6 +400,40 @@ describe("yetenek farkı", () => {
 
   it("karşılaştırılacak iki agent yoksa fark üretmez", () => {
     expect(capabilityDrift([agent("a", { systemCapabilities: { x: "1" } }), agent("b")]).rows).toEqual([]);
+  });
+});
+
+describe("güvenlik", () => {
+  it("gizli görünen yeteneklerin değerini maskeler", () => {
+    for (const name of ["NPM_TOKEN", "DB_PASSWORD", "ApiKey", "client-secret", "SQL_ConnectionString", "MY_PAT", "AUTH_HEADER"]) {
+      expect(maskCapability(name, "gizli")).toBe(MASK);
+    }
+    expect(maskCapability("java", "17")).toBe("17");
+    expect(maskCapability("Agent.OS", "Windows_NT")).toBe("Windows_NT");
+    expect(maskCapability("PATH", "/usr/bin")).toBe("/usr/bin");
+    expect(maskCapability("REPO_URL", "https://user:p4ss@git.example/x.git")).toBe(`https://${MASK}@git.example/x.git`);
+  });
+
+  it("maskeli değer yetenek listesine ve fark tablosuna sızmaz", () => {
+    const a = agent("a", { id: 1, systemCapabilities: { NPM_TOKEN: "abc123", java: "17" } });
+    const b = agent("b", { id: 2, systemCapabilities: { NPM_TOKEN: "xyz789", java: "17" } });
+    expect(JSON.stringify(capabilityList(a))).not.toContain("abc123");
+    const drift = capabilityDrift([a, b]);
+    expect(drift.rows).toEqual([{ name: "NPM_TOKEN", kind: "different", values: [MASK, MASK] }]);
+  });
+
+  it("CSV'de formül gibi başlayan hücreyi etkisizleştirir", () => {
+    expect(toCsv([["=1+1", "+cmd", "-2+3", "@SUM(1)", "normal", "a=b"]], ",")).toBe("'=1+1,'+cmd,'-2+3,'@SUM(1),normal,a=b");
+    expect(toCsv([['=HYPERLINK("http://x","y")']], ",")).toBe('"\'=HYPERLINK(""http://x"",""y"")"');
+  });
+
+  it("yalnızca http ve https adreslerini bağlantı yapar", () => {
+    expect(safeHref("https://srv/_build/results?buildId=1")).toBe("https://srv/_build/results?buildId=1");
+    expect(safeHref("HTTP://srv/x")).toBe("HTTP://srv/x");
+    expect(safeHref("javascript:alert(1)")).toBeUndefined();
+    expect(safeHref(" data:text/html,x")).toBeUndefined();
+    expect(safeHref("//srv/x")).toBeUndefined();
+    expect(safeHref(undefined)).toBeUndefined();
   });
 });
 

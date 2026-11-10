@@ -392,8 +392,32 @@ export function occupancy(s: PoolSummary): number | null {
   return s.online > 0 ? Math.round((s.busy / s.online) * 100) : null;
 }
 
+/** Gizlenen yetenek değerinin yerine gösterilen metin. */
+export const MASK = "••••••";
+
+/** Adı parola, anahtar ya da token çağrıştıran yetenekler; değerleri hiçbir yerde gösterilmez. */
+const SECRET_NAME = /token|passw|pwd|secret|credential|key|connectionstring|connstr|signature|auth|cert|(^|[_.-])pat($|[_.-])/i;
+/** Adresin içine gömülü kullanıcı adı ve parola: https://kullanici:parola@sunucu */
+const URL_CREDENTIALS = /\/\/[^/\s:@]+:[^/\s@]+@/g;
+
+/**
+ * Agent'lar makinedeki ortam değişkenlerini yetenek olarak bildirir; aralarında parola ya da token
+ * olabilir. Gösterilecek değeri döndürür: gizli görünen adlarda MASK, adres içindeki kimlik
+ * bilgisi maskelenmiş olarak.
+ */
+export function maskCapability(name: string, value: string): string {
+  if (SECRET_NAME.test(name)) return MASK;
+  return value.replace(URL_CREDENTIALS, `//${MASK}@`);
+}
+
+/** Yalnızca http ve https adreslerini bağlantı olarak kabul eder. */
+export function safeHref(url: string | undefined): string | undefined {
+  return url && /^https?:\/\//i.test(url.trim()) ? url.trim() : undefined;
+}
+
 export interface Capability {
   name: string;
+  /** Gösterilecek değer; gizli görünen yeteneklerde maskelidir. */
   value: string;
   /** Kullanıcının elle tanımladığı yetenek; değilse agent'ın kendi bildirdiği. */
   user: boolean;
@@ -403,7 +427,7 @@ export interface Capability {
 export function capabilityList(agent: Agent): Capability[] {
   const list = (caps: Record<string, string> | undefined, user: boolean) =>
     Object.entries(caps ?? {})
-      .map(([name, value]) => ({ name, value, user }))
+      .map(([name, value]) => ({ name, value: maskCapability(name, value), user }))
       .sort((a, b) => a.name.localeCompare(b.name));
   return [...list(agent.userCapabilities, true), ...list(agent.systemCapabilities, false)];
 }
@@ -447,7 +471,7 @@ export interface DriftRow {
   name: string;
   /** missing: bazı agent'larda hiç yok. different: hepsinde var ama değerler farklı. */
   kind: "missing" | "different";
-  /** agents sırasıyla değerler; null: o agent'ta yok. */
+  /** agents sırasıyla gösterilecek (gerekirse maskeli) değerler; null: o agent'ta yok. */
   values: (string | null)[];
 }
 
@@ -474,9 +498,11 @@ export function capabilityDrift(all: Agent[]): Drift {
   const rows: DriftRow[] = [];
   for (const [key, name] of names) {
     if (DRIFT_IGNORED.has(key)) continue;
-    const values = perAgent.map((caps) => caps.get(key) ?? null);
-    if (values.some((v) => v === null)) rows.push({ name, kind: "missing", values });
-    else if (new Set(values).size > 1) rows.push({ name, kind: "different", values });
+    const raw = perAgent.map((caps) => caps.get(key) ?? null);
+    // Karşılaştırma gerçek değerlerle yapılır, tabloya maskeli değerler yazılır.
+    const values = raw.map((v) => (v === null ? null : maskCapability(name, v)));
+    if (raw.some((v) => v === null)) rows.push({ name, kind: "missing", values });
+    else if (new Set(raw).size > 1) rows.push({ name, kind: "different", values });
   }
   rows.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "missing" ? -1 : 1));
   return { agents, rows };

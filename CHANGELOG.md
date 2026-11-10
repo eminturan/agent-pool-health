@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.1
+
+Security hardening:
+
+- Capability values whose name looks like a secret, and credentials embedded in URLs, are masked
+- CSV export: cells starting with `=`, `+`, `-` or `@` can no longer run as formulas in Excel
+- Only `http` and `https` addresses are rendered as links
+- The page stops refreshing while its browser tab is in the background
+
 ## 0.8.0
 
 - Capability differences: compare the capabilities of the agents in a pool and see what is missing where

@@ -67,6 +67,27 @@ yükleyip collection'a kurun. Sayfa her projede **Pipelines → Agent Health** a
 Sayfa, oturum açan kullanıcının görme yetkisi olan havuzları gösterir. Havuzda Reader rolü
 olmayan kullanıcı, agent'lar yerine o havuz için bir uyarı görür.
 
+## Güvenlik
+
+- **Yalnızca okur.** Extension, `vso.agentpools` yetkisiyle yalnızca GET isteği yapar. Agent,
+  havuz ya da iş üzerinde değişiklik yapamaz.
+- **Kullanıcının kendi yetkileri geçerlidir.** Her istek oturum açan kullanıcı adına yapılır;
+  neyi görebileceğine sunucu karar verir. Erişim anahtarı yalnızca collection adresine gönderilir,
+  saklanmaz ve loglanmaz.
+- **Havuzda okuma yetkisi olan ne görür.** Kuyruk, havuzu kullanan tüm projelerin pipeline'larını
+  listeler; kullanıcı, açamadığı bir projedeki pipeline'ın adını görebilir. Bunu havuzdaki Reader
+  rolü belirler (Collection Settings → Agent pools → Security); Azure DevOps'un kendi havuz
+  sayfalarında da durum aynıdır.
+- **Yeteneklerdeki gizli değerler maskelenir.** Agent'lar makinelerindeki ortam değişkenlerini
+  yetenek olarak bildirir. Adı gizli bir değeri çağrıştıran yeteneklerin (token, password, secret,
+  key, credential, connection string, auth, cert, PAT) değeri ve adreslere gömülü kimlik bilgileri
+  sayfanın her yerinde `••••••` olarak gösterilir. Ada göre maskeleme, masum bir adla saklanan
+  gizli değeri yakalayamaz; agent ortam değişkenlerinde gizli değer tutmayın.
+- **CSV dosyası Excel'de güvenle açılır.** `=`, `+`, `-` ya da `@` ile başlayan hücrelerin başına
+  tek tırnak eklenir; böylece bir pipeline ya da agent adı formül olarak çalışamaz.
+- **Bağlantılar.** Yalnızca `http` ve `https` adresleri bağlantı olarak gösterilir.
+- **Sunucu yükü.** Tarayıcı sekmesi arka plandayken sayfa yenilemeyi durdurur.
+
 ## Geliştirme
 
 ```bash

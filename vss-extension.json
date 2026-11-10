@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "agent-pool-health",
   "publisher": "turanemin",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "name": "Agent Pool Health Dashboard",
   "description": "See the status of all self-hosted agent pools, running jobs and queued jobs on one page.",
   "public": true,

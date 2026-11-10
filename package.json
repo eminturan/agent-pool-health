@@ -1,6 +1,6 @@
 {
   "name": "agent-pool-health",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Azure DevOps Server 2022 icin Agent Havuzu Saglik Panosu extension'i",
   "scripts": {

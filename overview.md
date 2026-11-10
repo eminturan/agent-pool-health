@@ -53,6 +53,9 @@ of the Azure DevOps page and then to your browser language.
 The extension requests only the `vso.agentpools` scope (read agent pools). It changes nothing and
 sends no data outside Azure DevOps.
 
+Capability values that look like secrets (tokens, passwords, keys) are masked, the CSV export is
+safe to open in Excel, and the page stops refreshing while its tab is in the background.
+
 ## Known limitations
 
 - Machine metrics such as disk, CPU and memory are not shown; Azure DevOps does not store them.
@@ -60,6 +63,7 @@ sends no data outside Azure DevOps.
 
 ## Release notes
 
+- **0.8.1:** security hardening: masked secrets in capabilities, safe CSV export, link checks
 - **0.8.0:** diagnostics section; only the agent pool read permission is requested
 - **0.7.0:** capability differences, outdated agents
 - **0.6.0:** occupancy, agent capabilities, CSV export
