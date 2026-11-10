@@ -10,7 +10,6 @@ import {
   findUnusedAgents,
   formatDuration,
   groupQueue,
-  hasMine,
   inScope,
   isOutdated,
   latestVersion,
@@ -401,18 +400,6 @@ describe("yetenek farkı", () => {
   });
 });
 
-describe("benim işlerim", () => {
-  it("kullanıcının bekleyen ya da çalışan işi olan havuzu bulur", () => {
-    const me = { id: "ben" };
-    const mineQueued = pool([agent("a")], [{ requestId: 1, queueTime: at(10), requestedFor: me }]);
-    const mineRunning = pool([agent("a", { assignedRequest: { requestId: 2, requestedFor: me } })], null);
-    const mineFinished = pool([agent("a")], [{ requestId: 3, finishTime: at(10), requestedFor: me }]);
-    const others = pool([agent("a")], [{ requestId: 4, queueTime: at(10), requestedFor: { id: "baska" } }]);
-    expect([mineQueued, mineRunning, mineFinished, others].map((p) => hasMine(p, "ben"))).toEqual([true, true, false, false]);
-    expect(hasMine(mineQueued, undefined)).toBe(false);
-  });
-});
-
 describe("shortOs", () => {
   it("uzun işletim sistemi satırını kısaltır", () => {
     expect(
@@ -538,39 +525,32 @@ describe("createRestSource", () => {
     expect(source.poolUrl!(data[2].pool)).toBe("https://srv/tfs/Col/_settings/deploymentpools?poolId=2");
   });
 
-  it("build işlerini başlatan kişiyi proje bazında toplu okur ve tekrar sormaz", async () => {
-    const buildCalls: string[] = [];
-    const source = createRestSource("https://srv/tfs/Col/", async () => "tkn", async (url) => {
+  it("sunucunun hata mesajını havuz uyarısına ve tanılamaya yazar", async () => {
+    const source = createRestSource("https://srv/Col/", async () => "tkn", async (url) => {
       if (url.includes("/pools?poolType=automation"))
         return json([{ id: 1, name: "A", poolType: "automation", isHosted: false }]);
-      if (url.includes("/pools?poolType=deployment")) return json([]);
-      if (url.includes("/pools/1/agents"))
-        return json([agent("a", { assignedRequest: { requestId: 5, planType: "Build", scopeId: "p1", owner: { id: 30 } } })]);
+      if (url.includes("/pools?poolType=deployment"))
+        return { ok: false, status: 400, json: async () => ({ message: "Geçersiz istek" }) } as Response;
+      if (url.includes("/pools/1/agents")) return json([agent("a", { statusChangedOn: at(5) })]);
       if (url.includes("/pools/1/jobrequests"))
         return json([
-          { requestId: 1, queueTime: at(10), planType: "Build", scopeId: "p1", owner: { id: 10 } },
-          { requestId: 2, queueTime: at(10), planType: "Build", scopeId: "p1", owner: { id: 20 } },
-          { requestId: 3, queueTime: at(10), planType: "Release", scopeId: "p1", owner: { id: 99 } },
-          { requestId: 4, queueTime: at(90), finishTime: at(5), planType: "Build", scopeId: "p1", owner: { id: 40 } },
+          { requestId: 1, queueTime: at(10), demands: ["msbuild"] },
+          { requestId: 2, queueTime: at(90), finishTime: at(5) },
         ]);
-      if (url.includes("/_apis/build/builds")) {
-        buildCalls.push(url);
-        return json([
-          { id: 10, requestedFor: { id: "ben", displayName: "Emin" } },
-          { id: 30, requestedFor: { id: "baska", displayName: "Ayşe" } },
-        ]);
-      }
       return json(null, 404);
     });
-
-    const [first] = await source.load();
-    expect(buildCalls).toEqual(["https://srv/tfs/Col/p1/_apis/build/builds?buildIds=10,20,30&api-version=7.0"]);
-    expect(first.requests!.map((r) => r.requestedFor?.id)).toEqual(["ben", undefined, undefined, undefined]);
-    expect(first.agents[0].assignedRequest!.requestedFor).toEqual({ id: "baska", displayName: "Ayşe" });
-
-    const [second] = await source.load();
-    expect(buildCalls).toHaveLength(1);
-    expect(second.requests![0].requestedFor?.displayName).toBe("Emin");
+    await source.load();
+    expect(source.diagnostics!()).toMatchObject({
+      agentPools: 1,
+      deploymentPools: 0,
+      deploymentPoolsError: "HTTP 400: Geçersiz istek",
+      agents: 1,
+      agentsWithStatusChangedOn: 1,
+      jobs: 2,
+      jobsWithDemands: 1,
+      activeJobs: 1,
+      jobFields: ["demands", "queueTime", "requestId"],
+    });
   });
 
   it("deployment sorgusu başarısız olursa pipeline havuzlarıyla devam eder", async () => {
@@ -581,5 +561,6 @@ describe("createRestSource", () => {
       return json([]);
     });
     expect((await source.load()).map((d) => d.pool.name)).toEqual(["A"]);
+    expect(source.diagnostics!()).toMatchObject({ deploymentPoolsError: "HTTP 403", deploymentPools: 0 });
   });
 });

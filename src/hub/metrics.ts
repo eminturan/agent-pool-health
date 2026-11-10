@@ -417,19 +417,6 @@ export function isOutdated(agent: Agent, latest: string | null): boolean {
   return latest !== null && compareVersions(agent.version, latest) < 0;
 }
 
-/** İş, verilen kullanıcı tarafından mı başlatıldı? */
-export function isMine(r: JobRequest | undefined, userId: string | undefined): boolean {
-  return !!r && !!userId && r.requestedFor?.id === userId;
-}
-
-/** Havuzda kullanıcının bekleyen ya da çalışan işi var mı? */
-export function hasMine(data: PoolData, userId: string | undefined): boolean {
-  return (
-    (data.requests ?? []).some((r) => !r.finishTime && isMine(r, userId)) ||
-    data.agents.some((a) => isMine(a.assignedRequest, userId))
-  );
-}
-
 /** Makineye özgü olduğu için agent'lar arasında doğal olarak farklı çıkan yetenekler. */
 const DRIFT_IGNORED = new Set(
   [

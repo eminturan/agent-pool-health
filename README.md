@@ -31,7 +31,6 @@ Works on Azure DevOps Server 2022 and Azure DevOps Services.
 - Queued jobs are grouped by pipeline ("Nightly-Tests × 30"); expand a group to see each job
 - Each queued job says why it is waiting: no agent meets its demands (and which demand is
   unmet), matching agents are busy, or matching agents are offline or disabled
-- Who requested the job, and a "My jobs only" filter (build jobs only)
 - Job names link to the pipeline run
 
 **Agents**
@@ -62,7 +61,6 @@ in every project.
 | Scope | Used for |
 | --- | --- |
 | `vso.agentpools` | Read agent pools, agents and their job queues |
-| `vso.build` | Read builds, only to find out who requested a job ("My jobs only") |
 
 The page shows the pools the signed-in user is allowed to see. A user without the Reader role on
 a pool sees a per-pool warning instead of its agents.
@@ -152,17 +150,19 @@ against sample data. Each degrades gracefully when its data is missing:
 | Why a job is waiting | `demands` / `matchedAgents` on the job, capabilities on the agent | Reason is based on agent status only |
 | Links to runs | `owner._links.web.href` on the job | Job name is plain text |
 | Deployment pools | `pools?poolType=deployment` | Only agent pools are shown |
-| Who requested a job | `planType`, `scopeId`, `owner.id` on the job; `vso.build` | "My jobs only" is hidden |
 | CSV export | The browser allowing downloads from the extension frame | Nothing is downloaded |
 
-Adding the `vso.build` scope means a collection administrator has to approve the extension again
-after updating from a version older than 0.7.0.
+On Azure DevOps Server 2022.0.1 every field in this table was returned, as shown by the
+Diagnostics section at the bottom of the page. Open it when something looks wrong: it lists what
+could be read from the server (counts, field names and server error messages only).
 
 ## Out of scope
 
 - Machine metrics such as disk, CPU and memory (Azure DevOps does not store them)
 - Historical trends (needs data storage)
 - Notifications (the extension only runs while the page is open)
+- A per-developer view such as "my jobs": this page is about agent health; finding who started a
+  job needs the build-read permission and belongs in a separate extension
 
 ## License
 

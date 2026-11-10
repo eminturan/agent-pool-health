@@ -87,8 +87,8 @@ export interface Strings {
   driftMissing: string;
   driftNone: string;
   colCapability: string;
-  filterMine: string;
-  requestedBy: (name: string) => string;
+  diagnostics: string;
+  diagnosticsHint: string;
   queuedJobs: string;
   showAllQueued: (count: number) => string;
   showFewerQueued: string;
@@ -205,8 +205,8 @@ const tr: Strings = {
   driftMissing: "yok",
   driftNone: "Gösterilecek fark yok.",
   colCapability: "Yetenek",
-  filterMine: "Yalnızca benim işlerim",
-  requestedBy: (name) => `başlatan: ${name}`,
+  diagnostics: "Tanılama bilgisi",
+  diagnosticsHint: "Sunucudan ne okunabildiğini gösterir. Sayılar, alan adları ve sunucunun hata mesajlarını içerir; havuz, iş ya da kişi adı içermez.",
   queuedJobs: "Bekleyen işler",
   showAllQueued: (n) => `Tümünü göster (${n})`,
   showFewerQueued: "Daha az göster",
@@ -346,8 +346,8 @@ const en: Strings = {
   driftMissing: "missing",
   driftNone: "No differences to show.",
   colCapability: "Capability",
-  filterMine: "My jobs only",
-  requestedBy: (name) => `requested by ${name}`,
+  diagnostics: "Diagnostics",
+  diagnosticsHint: "Shows what could be read from the server. Counts, field names and server error messages; no pool, job or person names.",
   queuedJobs: "Queued jobs",
   showAllQueued: (n) => `Show all (${n})`,
   showFewerQueued: "Show fewer",

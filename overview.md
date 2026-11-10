@@ -28,7 +28,6 @@ See the status of all your self-hosted agent pools and deployment pools on one p
 - **CSV export:** download the agent inventory of the pools shown
 - **Capability differences:** compare the agents in a pool and see which capability is missing
   on which agent
-- **My jobs only:** show only the jobs you started; queued jobs show who requested them
 - **Outdated agents:** agents behind the newest agent version in their pool are marked
 - **Disabled pools:** a pool whose agents are all disabled is shown as disabled, not as a problem
 - **Stale jobs:** jobs queued for more than a day are included in the queue count but flagged
@@ -51,10 +50,8 @@ of the Azure DevOps page and then to your browser language.
 
 ## Permissions
 
-The extension only reads data; it changes nothing and sends no data outside Azure DevOps.
-
-- `vso.agentpools`: read agent pools, agents and their job queues
-- `vso.build`: read builds, used only to find out who requested a job ("My jobs only")
+The extension requests only the `vso.agentpools` scope (read agent pools). It changes nothing and
+sends no data outside Azure DevOps.
 
 ## Known limitations
 
@@ -63,7 +60,8 @@ The extension only reads data; it changes nothing and sends no data outside Azur
 
 ## Release notes
 
-- **0.7.0:** capability differences, my jobs only, outdated agents
+- **0.8.0:** diagnostics section; only the agent pool read permission is requested
+- **0.7.0:** capability differences, outdated agents
 - **0.6.0:** occupancy, agent capabilities, CSV export
 - **0.5.0:** switch between all pools, agent pools and deployment pools
 - **0.4.0:** queue grouped by pipeline, usage breakdown, deployment pools

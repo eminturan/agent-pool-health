@@ -24,11 +24,9 @@ import {
   findUnusedAgents,
   formatDuration,
   groupQueue,
-  hasMine,
   Health,
   inScope,
   isLongRunning,
-  isMine,
   isOutdated,
   isStaleRequest,
   latestVersion,
@@ -214,10 +212,7 @@ function QueueGroupRow({ group, agents, now }: { group: QueueGroup; agents: Agen
               × {group.jobs.length} {open ? "▾" : "▸"}
             </button>
           )}
-          <div className="aph-muted">
-            {t.waitReason(explainWait(oldest, agents))}
-            {!many && oldest.requestedFor?.displayName && ` · ${t.requestedBy(oldest.requestedFor.displayName)}`}
-          </div>
+          <div className="aph-muted">{t.waitReason(explainWait(oldest, agents))}</div>
         </span>
         <span className="aph-muted aph-nowrap">{many ? t.oldestWaiting(waited(oldest)) : t.waiting(waited(oldest))}</span>
       </div>
@@ -227,9 +222,6 @@ function QueueGroupRow({ group, agents, now }: { group: QueueGroup; agents: Agen
             <li key={r.requestId}>
               <span>
                 <JobName job={r} label={t.request(r.requestId)} />
-                {r.requestedFor?.displayName && (
-                  <span className="aph-muted"> · {t.requestedBy(r.requestedFor.displayName)}</span>
-                )}
               </span>
               <span className="aph-muted aph-nowrap">{t.waiting(waited(r))}</span>
             </li>
@@ -356,13 +348,13 @@ function DriftTable({ agents }: { agents: Agent[] }) {
   );
 }
 
-function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; url?: string; mineId?: string }) {
-  const { data, summary, now, mineId } = props;
+function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; url?: string }) {
+  const { data, summary, now } = props;
   const t = useStrings();
-  const [open, setOpen] = React.useState(summary.health === "warning" || summary.health === "critical" || !!mineId);
+  const [open, setOpen] = React.useState(summary.health === "warning" || summary.health === "critical");
   const latest = latestVersion(data.agents);
   const queued = (data.requests ?? [])
-    .filter((r) => requestState(r) === "queued" && (!mineId || isMine(r, mineId)))
+    .filter((r) => requestState(r) === "queued")
     .sort((a, b) => (waitSeconds(b, now) ?? 0) - (waitSeconds(a, now) ?? 0));
   const stale = queued.filter((r) => isStaleRequest(r, now));
   const fresh = queued.filter((r) => !isStaleRequest(r, now));
@@ -501,6 +493,25 @@ function UnusedCard({ items }: { items: UnusedAgent[] }) {
   );
 }
 
+/** Sunucudan ne okunabildiğinin özeti; sorun bildirirken ekran görüntüsü almak için. */
+function Diagnostics({ info }: { info: Record<string, unknown> }) {
+  const t = useStrings();
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="aph-diag">
+      <button className="aph-more" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {t.diagnostics} {open ? "▾" : "▸"}
+      </button>
+      {open && (
+        <>
+          <div className="aph-muted">{t.diagnosticsHint}</div>
+          <pre>{JSON.stringify(info, null, 2)}</pre>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Stat(props: { label: string; value: React.ReactNode; meter?: number | null }) {
   return (
     <div className="aph-stat">
@@ -515,7 +526,8 @@ function Stat(props: { label: string; value: React.ReactNode; meter?: number | n
   );
 }
 
-function App({ source, demo }: { source: DataSource; demo: boolean }) {
+function App(props: { source: DataSource; demo: boolean; extra?: Record<string, unknown> }) {
+  const { source, demo, extra } = props;
   const t = useStrings();
   const [pools, setPools] = React.useState<PoolData[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -526,7 +538,6 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
   const [onlyProblems, setOnlyProblems] = React.useState(false);
   const [hideInactive, setHideInactive] = React.useState(false);
   const [scope, setScope] = React.useState<PoolScope>("all");
-  const [onlyMine, setOnlyMine] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -558,17 +569,7 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
   const scoped = (pools ?? []).filter((p) => inScope(p, hasDeployment ? scope : "all"));
   const rows = sortByHealth(scoped.map((data) => ({ data, summary: summarizePool(data, now) })));
   const totals = summarizeAll(rows.map((r) => r.summary));
-  // "Yalnızca benim işlerim" ancak işi başlatan kişi okunabildiyse sunulur.
-  const me = source.currentUser?.id;
-  const canMine =
-    !!me &&
-    scoped.some(
-      (p) => (p.requests ?? []).some((r) => r.requestedFor) || p.agents.some((a) => a.assignedRequest?.requestedFor),
-    );
-  const mineId = canMine && onlyMine ? me : undefined;
-  const visible = filterRows(rows, { query, onlyProblems, hideInactive }).filter(
-    (r) => !mineId || hasMine(r.data, mineId),
-  );
+  const visible = filterRows(rows, { query, onlyProblems, hideInactive });
   const unused = findUnusedAgents(scoped, now);
   const queueNotes = [
     totals.stale ? t.staleNote(totals.stale, formatDuration(STALE_SEC, t.units)) : "",
@@ -674,28 +675,22 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
                 >
                   {t.filterHideInactive}
                 </button>
-                {canMine && (
-                  <button
-                    className={`aph-chip${onlyMine ? " aph-chip-on" : ""}`}
-                    aria-pressed={onlyMine}
-                    onClick={() => setOnlyMine(!onlyMine)}
-                  >
-                    {t.filterMine}
-                  </button>
-                )}
               </div>
             )}
             {rows.length > 0 && visible.length === 0 && <div className="aph-muted">{t.noMatches}</div>}
             {visible.map((r) => (
-              <PoolCard
-                key={`${r.data.pool.id}-${mineId ?? ""}`}
-                {...r}
-                now={now}
-                url={source.poolUrl?.(r.data.pool)}
-                mineId={mineId}
-              />
+              <PoolCard key={r.data.pool.id} {...r} now={now} url={source.poolUrl?.(r.data.pool)} />
             ))}
             <UnusedCard items={unused} />
+            {source.diagnostics && (
+              <Diagnostics
+                info={{
+                  ...source.diagnostics(),
+                  language: t.locale,
+                  ...extra,
+                }}
+              />
+            )}
           </>
         )}
       </div>
@@ -703,12 +698,17 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
   );
 }
 
-function render(source: DataSource, demo: boolean, culture: string | null | undefined) {
+function render(
+  source: DataSource,
+  demo: boolean,
+  culture: string | null | undefined,
+  extra?: Record<string, unknown>,
+) {
   const strings = STRINGS[pickLang(culture)];
   document.documentElement.lang = strings.locale.slice(0, 2);
   ReactDOM.render(
     <I18n.Provider value={strings}>
-      <App source={source} demo={demo} />
+      <App source={source} demo={demo} extra={extra} />
     </I18n.Provider>,
     document.getElementById("root"),
   );
@@ -733,12 +733,9 @@ async function start() {
       () => window.parent.document.documentElement.lang,
       () => navigator.language,
     ]);
-    const user = SDK.getUser();
-    const source: DataSource = {
-      ...createRestSource(baseUrl, () => SDK.getAccessToken()),
-      currentUser: user?.id ? { id: user.id, displayName: user.displayName } : undefined,
-    };
-    render(source, false, culture);
+    const source = createRestSource(baseUrl, () => SDK.getAccessToken());
+    const context = SDK.getExtensionContext();
+    render(source, false, culture, { extensionVersion: context?.version, culture: culture ?? null });
     await SDK.notifyLoadSucceeded();
   } catch (e) {
     await SDK.notifyLoadFailed(e instanceof Error ? e : String(e));

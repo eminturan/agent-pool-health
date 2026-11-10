@@ -34,7 +34,6 @@ Azure DevOps Server 2022 ve Azure DevOps Services üzerinde çalışır.
   görünür
 - Bekleyen her işin altında neden beklediği yazar: isteklerini (demands) karşılayan agent yok
   (ve hangi istek karşılanmıyor), uygun agent'lar meşgul ya da uygun agent'lar offline/devre dışı
-- İşi kimin başlattığı ve "Yalnızca benim işlerim" filtresi (yalnızca build işleri)
 - İş adları pipeline çalıştırmasına bağlantıdır
 
 **Agent'lar**
@@ -64,7 +63,6 @@ yükleyip collection'a kurun. Sayfa her projede **Pipelines → Agent Health** a
 | Scope | Ne için |
 | --- | --- |
 | `vso.agentpools` | Agent havuzlarını, agent'ları ve iş kuyruklarını okuma |
-| `vso.build` | Build'leri okuma; yalnızca işi kimin başlattığını bulmak için ("Yalnızca benim işlerim") |
 
 Sayfa, oturum açan kullanıcının görme yetkisi olan havuzları gösterir. Havuzda Reader rolü
 olmayan kullanıcı, agent'lar yerine o havuz için bir uyarı görür.
@@ -153,17 +151,19 @@ veriyle denenmiştir. Verisi gelmeyen özellik sayfayı bozmaz:
 | İşin neden beklediği | İşteki `demands` / `matchedAgents`, agent'taki yetenekler | Neden yalnızca agent durumuna göre yazılır |
 | Çalıştırma bağlantıları | İşteki `owner._links.web.href` | İş adı düz metin kalır |
 | Deployment havuzları | `pools?poolType=deployment` | Yalnızca agent havuzları görünür |
-| İşi başlatan kişi | İşteki `planType`, `scopeId`, `owner.id`; `vso.build` | "Yalnızca benim işlerim" görünmez |
 | CSV indirme | Tarayıcının extension çerçevesinden indirmeye izin vermesi | Dosya inmez |
 
-`vso.build` scope'u eklendiği için, 0.7.0'dan eski bir sürümden güncellerken collection
-yöneticisinin extension'ı yeniden onaylaması gerekir.
+Azure DevOps Server 2022.0.1'de bu tablodaki alanların hepsi geldi; bunu sayfanın en altındaki
+Diagnostics bölümü gösterdi. Bir şey yanlış göründüğünde orayı açın: sunucudan ne okunabildiğini
+listeler (yalnızca sayılar, alan adları ve sunucunun hata mesajları).
 
 ## Kapsam dışı
 
 - Disk, CPU, bellek gibi makine metrikleri (Azure DevOps bu veriyi tutmaz)
 - Geçmişe dönük trend (veri saklama gerektirir)
 - Bildirim (extension yalnızca sayfa açıkken çalışır)
+- "Benim işlerim" gibi geliştiriciye özel görünüm: bu sayfa agent sağlığıyla ilgilidir; işi kimin
+  başlattığını bulmak build okuma yetkisi gerektirir ve ayrı bir extension'ın konusudur
 
 ## Lisans
 

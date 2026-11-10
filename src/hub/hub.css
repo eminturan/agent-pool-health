@@ -292,6 +292,16 @@ body {
   margin-top: 8px;
 }
 
+.aph-diag pre {
+  max-height: 320px;
+  margin: 8px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 4px;
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.04));
+  font-size: 12px;
+}
+
 .aph-chevron {
   width: 16px;
   color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));

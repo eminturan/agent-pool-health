@@ -1,11 +1,14 @@
 # Changelog
 
-## 0.7.0
+## 0.8.0
 
 - Capability differences: compare the capabilities of the agents in a pool and see what is missing where
-- My jobs only: show only the jobs you started; queued jobs show who requested them
 - Agents on an older version than the newest in their pool are marked as outdated
-- New permission: `vso.build` (read builds), used to read who requested a job
+- Diagnostics section at the bottom of the page: what could be read from the server (counts, field names and server error messages)
+- The extension requests only the `vso.agentpools` permission
+
+Versions 0.7.0 to 0.7.4 were test builds that also asked for the build-read permission for a
+"My jobs only" filter. That filter was removed: this page is about agent health.
 
 ## 0.6.0
 

@@ -1,15 +1,10 @@
-import { Agent, DataSource, JobRequest, Person, PoolData } from "./types";
+import { Agent, DataSource, JobRequest, PoolData } from "./types";
 
 // `npm run dev` ile Azure DevOps dışında açıldığında kullanılan örnek veri.
 
 const ago = (sec: number) => new Date(Date.now() - sec * 1000).toISOString();
 
 const DAY = 86400;
-
-// Sayfayı açan örnek kullanıcı ve bir başka geliştirici.
-const ME: Person = { id: "ornek-ben", displayName: "Emin Turan" };
-const OTHER: Person = { id: "ornek-diger", displayName: "Ayşe Yılmaz" };
-const by = (r: JobRequest, who: Person): JobRequest => ({ ...r, requestedFor: who });
 
 let nextId = 1;
 const done = (name: string, finishedAgo: number, wait: number, result = "succeeded"): JobRequest => ({
@@ -53,7 +48,7 @@ const agent = (name: string, version: string, extra: Partial<Agent> = {}): Agent
 function build(): PoolData[] {
   // Üç saattir çalışan iş: "Uzun sürüyor" olarak işaretlenir.
   const r1 = running("KrediBasvuru-CI", 3 * 3600 + 380, "BLD-WIN-01");
-  const r2 = by(running("MobilBankacilik-CI", 95, "BLD-WIN-02"), ME);
+  const r2 = running("MobilBankacilik-CI", 95, "BLD-WIN-02");
   return [
     {
       pool: { id: 1, name: "Default", size: 4, isHosted: false, poolType: "automation" },
@@ -72,8 +67,8 @@ function build(): PoolData[] {
         r1,
         r2,
         // Hiçbir agent'ın karşılamadığı istek ve boşta uygun agent'ı olan iş.
-        by(queued("Mobil-iOS-CI", 240, ["xcode", "Agent.OS -equals Darwin"]), OTHER),
-        by(queued("Portal-CI", 15, ["msbuild"]), ME),
+        queued("Mobil-iOS-CI", 240, ["xcode", "Agent.OS -equals Darwin"]),
+        queued("Portal-CI", 15, ["msbuild"]),
         done("HesapServisi-CI", 600, 12), done("OdemeServisi-CI", 1500, 45), done("Portal-CI", 2400, 8)],
     },
     {
@@ -91,7 +86,7 @@ function build(): PoolData[] {
         }),
       ],
       requests: [
-        by(queued("ApiGateway-CI", 1320), ME),
+        queued("ApiGateway-CI", 1320),
         queued("Bildirim-CI", 410),
         // Aynı pipeline'ın 30 işi: kuyrukta tek satırda "× 30" olarak gruplanır.
         ...Array.from({ length: 30 }, (_, i) => queued("Gece-Testi", 390 - i * 10)),
@@ -146,6 +141,6 @@ function build(): PoolData[] {
 }
 
 export const mockSource: DataSource = {
-  currentUser: ME,
+  diagnostics: () => ({ sampleData: true }),
   load: () => new Promise((resolve) => setTimeout(() => resolve(build()), 300)),
 };
