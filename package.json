@@ -1,6 +1,6 @@
 {
   "name": "agent-pool-health",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "description": "Azure DevOps Server 2022 icin Agent Havuzu Saglik Panosu extension'i",
   "scripts": {
@@ -33,9 +33,5 @@
     "webpack-dev-server": "^6.1.0"
   },
   "author": "Emin Turan",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/eminturan/agent-pool-health.git"
-  }
+  "license": "MIT"
 }

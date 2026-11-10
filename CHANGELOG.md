@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.2
+
+- Removed the source repository links from the Marketplace page and the manifest
+
 ## 0.8.1
 
 Security hardening:

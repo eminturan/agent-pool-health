@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "agent-pool-health",
   "publisher": "turanemin",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "name": "Agent Pool Health Dashboard",
   "description": "See the status of all self-hosted agent pools, running jobs and queued jobs on one page.",
   "public": true,
@@ -38,14 +38,6 @@
     },
     "license": {
       "path": "LICENSE"
-    }
-  },
-  "links": {
-    "repository": {
-      "uri": "https://github.com/eminturan/agent-pool-health"
-    },
-    "issues": {
-      "uri": "https://github.com/eminturan/agent-pool-health/issues"
     }
   },
   "contributions": [

@@ -73,10 +73,6 @@ safe to open in Excel, and the page stops refreshing while its tab is in the bac
 - **0.2.0:** disabled pools, stale jobs, unused agents, offline duration
 - **0.1.0:** first version
 
-The full list is in `CHANGELOG.md` in the source repository.
-
-## Source and license
-
-Source code: https://github.com/eminturan/agent-pool-health
+## License
 
 Released under the MIT License. Developed by Emin Turan.
