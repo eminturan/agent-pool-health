@@ -255,6 +255,43 @@ body {
   overflow-wrap: anywhere;
 }
 
+.aph-drift {
+  max-height: 320px;
+  margin-top: 8px;
+  overflow: auto;
+  border: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 4px;
+}
+
+.aph-drift .aph-table {
+  margin-top: 0;
+  font-size: 12px;
+}
+
+.aph-drift .aph-table th,
+.aph-drift .aph-table td {
+  padding: 6px 12px;
+}
+
+.aph-drift .aph-table th {
+  position: sticky;
+  top: 0;
+  background: var(--callout-background-color, #fff);
+}
+
+.aph-drift-value {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.aph-drift-empty {
+  margin-top: 8px;
+}
+
 .aph-chevron {
   width: 16px;
   color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));

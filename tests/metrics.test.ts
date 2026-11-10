@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRestSource } from "../src/hub/api";
 import { inventoryRows, toCsv } from "../src/hub/export";
 import {
+  capabilityDrift,
   capabilityList,
   compareVersions,
   explainWait,
@@ -9,7 +10,10 @@ import {
   findUnusedAgents,
   formatDuration,
   groupQueue,
+  hasMine,
   inScope,
+  isOutdated,
+  latestVersion,
   occupancy,
   requestState,
   shortOs,
@@ -363,6 +367,52 @@ describe("CSV dışa aktarma", () => {
   });
 });
 
+describe("eski agent sürümü", () => {
+  it("havuzdaki en yeni sürümün gerisindeki agent'ları sayar", () => {
+    const agents = [agent("a", { version: "3.226.1" }), agent("b", { version: "3.220.1" }), agent("c", { version: "2.217.2" })];
+    const s = summarizePool(pool(agents), NOW);
+    expect(s).toMatchObject({ outdated: 2, health: "ok" });
+    expect(latestVersion(agents)).toBe("3.226.1");
+    expect(agents.map((a) => isOutdated(a, "3.226.1"))).toEqual([false, true, true]);
+    expect(summarizePool(pool([agent("a"), agent("b")]), NOW).outdated).toBe(0);
+    expect(latestVersion([])).toBeNull();
+  });
+});
+
+describe("yetenek farkı", () => {
+  it("eksik ve farklı değerli yetenekleri bulur; makineye özgü olanları atlar", () => {
+    const caps = (extra: Record<string, string>) => ({ "Agent.Name": "x", PATH: "/x", java: "17", ...extra });
+    const drift = capabilityDrift([
+      agent("a", { id: 1, systemCapabilities: caps({ "Agent.Name": "a", PATH: "/a", xcode: "15.2", node: "20" }) }),
+      agent("b", { id: 2, systemCapabilities: caps({ "Agent.Name": "b", PATH: "/b", Xcode: "14.3", node: "20" }) }),
+      agent("c", { id: 3, systemCapabilities: caps({ xcode: "15.2" }), userCapabilities: { ekip: "mobil" } }),
+      agent("yeteneksiz", { id: 4 }),
+    ]);
+    expect(drift.agents.map((a) => a.name)).toEqual(["a", "b", "c"]);
+    expect(drift.rows).toEqual([
+      { name: "ekip", kind: "missing", values: [null, null, "mobil"] },
+      { name: "node", kind: "missing", values: ["20", "20", null] },
+      { name: "xcode", kind: "different", values: ["15.2", "14.3", "15.2"] },
+    ]);
+  });
+
+  it("karşılaştırılacak iki agent yoksa fark üretmez", () => {
+    expect(capabilityDrift([agent("a", { systemCapabilities: { x: "1" } }), agent("b")]).rows).toEqual([]);
+  });
+});
+
+describe("benim işlerim", () => {
+  it("kullanıcının bekleyen ya da çalışan işi olan havuzu bulur", () => {
+    const me = { id: "ben" };
+    const mineQueued = pool([agent("a")], [{ requestId: 1, queueTime: at(10), requestedFor: me }]);
+    const mineRunning = pool([agent("a", { assignedRequest: { requestId: 2, requestedFor: me } })], null);
+    const mineFinished = pool([agent("a")], [{ requestId: 3, finishTime: at(10), requestedFor: me }]);
+    const others = pool([agent("a")], [{ requestId: 4, queueTime: at(10), requestedFor: { id: "baska" } }]);
+    expect([mineQueued, mineRunning, mineFinished, others].map((p) => hasMine(p, "ben"))).toEqual([true, true, false, false]);
+    expect(hasMine(mineQueued, undefined)).toBe(false);
+  });
+});
+
 describe("shortOs", () => {
   it("uzun işletim sistemi satırını kısaltır", () => {
     expect(
@@ -486,6 +536,41 @@ describe("createRestSource", () => {
     ]);
     expect(source.poolUrl!(data[1].pool)).toBe("https://srv/tfs/Col/_settings/agentpools?poolId=4&view=agents");
     expect(source.poolUrl!(data[2].pool)).toBe("https://srv/tfs/Col/_settings/deploymentpools?poolId=2");
+  });
+
+  it("build işlerini başlatan kişiyi proje bazında toplu okur ve tekrar sormaz", async () => {
+    const buildCalls: string[] = [];
+    const source = createRestSource("https://srv/tfs/Col/", async () => "tkn", async (url) => {
+      if (url.includes("/pools?poolType=automation"))
+        return json([{ id: 1, name: "A", poolType: "automation", isHosted: false }]);
+      if (url.includes("/pools?poolType=deployment")) return json([]);
+      if (url.includes("/pools/1/agents"))
+        return json([agent("a", { assignedRequest: { requestId: 5, planType: "Build", scopeId: "p1", owner: { id: 30 } } })]);
+      if (url.includes("/pools/1/jobrequests"))
+        return json([
+          { requestId: 1, queueTime: at(10), planType: "Build", scopeId: "p1", owner: { id: 10 } },
+          { requestId: 2, queueTime: at(10), planType: "Build", scopeId: "p1", owner: { id: 20 } },
+          { requestId: 3, queueTime: at(10), planType: "Release", scopeId: "p1", owner: { id: 99 } },
+          { requestId: 4, queueTime: at(90), finishTime: at(5), planType: "Build", scopeId: "p1", owner: { id: 40 } },
+        ]);
+      if (url.includes("/_apis/build/builds")) {
+        buildCalls.push(url);
+        return json([
+          { id: 10, requestedFor: { id: "ben", displayName: "Emin" } },
+          { id: 30, requestedFor: { id: "baska", displayName: "Ayşe" } },
+        ]);
+      }
+      return json(null, 404);
+    });
+
+    const [first] = await source.load();
+    expect(buildCalls).toEqual(["https://srv/tfs/Col/p1/_apis/build/builds?buildIds=10,20,30&api-version=7.0"]);
+    expect(first.requests!.map((r) => r.requestedFor?.id)).toEqual(["ben", undefined, undefined, undefined]);
+    expect(first.agents[0].assignedRequest!.requestedFor).toEqual({ id: "baska", displayName: "Ayşe" });
+
+    const [second] = await source.load();
+    expect(buildCalls).toHaveLength(1);
+    expect(second.requests![0].requestedFor?.displayName).toBe("Emin");
   });
 
   it("deployment sorgusu başarısız olursa pipeline havuzlarıyla devam eder", async () => {

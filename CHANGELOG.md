@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- Capability differences: compare the capabilities of the agents in a pool and see what is missing where
+- My jobs only: show only the jobs you started; queued jobs show who requested them
+- Agents on an older version than the newest in their pool are marked as outdated
+- New permission: `vso.build` (read builds), used to read who requested a job
+
 ## 0.6.0
 
 - Occupancy per pool: the share of online agents that are busy, with a meter

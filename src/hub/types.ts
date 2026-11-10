@@ -8,6 +8,11 @@ export interface AgentPool {
   poolType: string; // "automation" | "deployment"
 }
 
+export interface Person {
+  id: string;
+  displayName?: string;
+}
+
 export interface WebLink {
   web?: { href?: string };
 }
@@ -22,7 +27,13 @@ export interface JobRequest {
   /** Pipeline tanımı. */
   definition?: { name?: string; _links?: WebLink };
   /** İşi başlatan çalıştırma (build/release). */
-  owner?: { name?: string; _links?: WebLink };
+  owner?: { id?: number; name?: string; _links?: WebLink };
+  /** "Build" ya da "Release". */
+  planType?: string;
+  /** İşin ait olduğu projenin kimliği. */
+  scopeId?: string;
+  /** İşi başlatan kişi; sunucudan ayrıca okunur (yalnızca build işleri için). */
+  requestedFor?: Person;
   reservedAgent?: { id: number; name: string };
   /** İşin agent'tan istediği yetenekler, örn. "msbuild" ya da "Agent.OS -equals Darwin". */
   demands?: string[];
@@ -58,6 +69,8 @@ export interface PoolData {
 }
 
 export interface DataSource {
+  /** Sayfayı açan kullanıcı; "yalnızca benim işlerim" filtresi için. */
+  currentUser?: Person;
   /** Havuz ayar sayfasının adresi; yoksa bağlantı gösterilmez. */
   poolUrl?(pool: AgentPool): string;
   load(): Promise<PoolData[]>;

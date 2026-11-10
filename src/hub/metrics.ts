@@ -48,6 +48,8 @@ export interface PoolSummary {
   /** Tamamlanan son işlerin ortalama kuyruk bekleme süresi. */
   avgWaitSec: number | null;
   versions: string[];
+  /** Havuzdaki en yeni agent sürümünün gerisinde kalan agent sayısı. */
+  outdated: number;
   health: Health;
   reasons: Reason[];
 }
@@ -172,6 +174,9 @@ export function summarizePool(data: PoolData, now: number): PoolSummary {
     oldestQueuedSec,
     avgWaitSec,
     versions,
+    outdated: versions.length
+      ? data.agents.filter((a) => compareVersions(a.version, versions[versions.length - 1]) < 0).length
+      : 0,
     health,
     reasons,
   };
@@ -401,4 +406,91 @@ export function capabilityList(agent: Agent): Capability[] {
       .map(([name, value]) => ({ name, value, user }))
       .sort((a, b) => a.name.localeCompare(b.name));
   return [...list(agent.userCapabilities, true), ...list(agent.systemCapabilities, false)];
+}
+
+/** Havuzdaki en yeni agent sürümü; agent yoksa null. */
+export function latestVersion(agents: Agent[]): string | null {
+  return agents.length ? agents.map((a) => a.version).sort(compareVersions)[agents.length - 1] : null;
+}
+
+export function isOutdated(agent: Agent, latest: string | null): boolean {
+  return latest !== null && compareVersions(agent.version, latest) < 0;
+}
+
+/** İş, verilen kullanıcı tarafından mı başlatıldı? */
+export function isMine(r: JobRequest | undefined, userId: string | undefined): boolean {
+  return !!r && !!userId && r.requestedFor?.id === userId;
+}
+
+/** Havuzda kullanıcının bekleyen ya da çalışan işi var mı? */
+export function hasMine(data: PoolData, userId: string | undefined): boolean {
+  return (
+    (data.requests ?? []).some((r) => !r.finishTime && isMine(r, userId)) ||
+    data.agents.some((a) => isMine(a.assignedRequest, userId))
+  );
+}
+
+/** Makineye özgü olduğu için agent'lar arasında doğal olarak farklı çıkan yetenekler. */
+const DRIFT_IGNORED = new Set(
+  [
+    "agent.name",
+    "agent.computername",
+    "agent.homedirectory",
+    "agent.version",
+    "computername",
+    "hostname",
+    "username",
+    "user",
+    "logname",
+    "home",
+    "homepath",
+    "userprofile",
+    "pwd",
+    "oldpwd",
+    "path",
+    "temp",
+    "tmp",
+    "tmpdir",
+    "shlvl",
+    "_",
+  ].map((k) => k.toLowerCase()),
+);
+
+export interface DriftRow {
+  name: string;
+  /** missing: bazı agent'larda hiç yok. different: hepsinde var ama değerler farklı. */
+  kind: "missing" | "different";
+  /** agents sırasıyla değerler; null: o agent'ta yok. */
+  values: (string | null)[];
+}
+
+export interface Drift {
+  /** Yetenek listesi okunabilen agent'lar. */
+  agents: Agent[];
+  rows: DriftRow[];
+}
+
+/** Havuzdaki agent'ların yeteneklerini karşılaştırır; eksik olanlar önce, sonra farklı değerliler. */
+export function capabilityDrift(all: Agent[]): Drift {
+  const agents = all.filter((a) => a.systemCapabilities || a.userCapabilities);
+  if (agents.length < 2) return { agents, rows: [] };
+  const names = new Map<string, string>();
+  const perAgent = agents.map((a) => {
+    const caps = new Map<string, string>();
+    for (const [name, value] of Object.entries({ ...a.systemCapabilities, ...a.userCapabilities })) {
+      const key = name.toLowerCase();
+      caps.set(key, value);
+      if (!names.has(key)) names.set(key, name);
+    }
+    return caps;
+  });
+  const rows: DriftRow[] = [];
+  for (const [key, name] of names) {
+    if (DRIFT_IGNORED.has(key)) continue;
+    const values = perAgent.map((caps) => caps.get(key) ?? null);
+    if (values.some((v) => v === null)) rows.push({ name, kind: "missing", values });
+    else if (new Set(values).size > 1) rows.push({ name, kind: "different", values });
+  }
+  rows.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "missing" ? -1 : 1));
+  return { agents, rows };
 }

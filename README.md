@@ -25,6 +25,11 @@ self-hosted agent havuzlarını tek ekranda gösterir:
 - Agent satırında "Yetenekler" açılır listesi; içinde arama yapılabilir
 - "CSV indir": gösterilen havuzların agent envanterini indirir (Türkçe arayüzde ayraç `;`,
   İngilizce'de `,`)
+- Yetenek farkları: havuzdaki agent'ların yetenekleri yan yana karşılaştırılır; bir agent'ta
+  eksik olan yetenek "yok" diye işaretlenir. Makine adı, PATH gibi doğal olarak farklı olanlar atlanır
+- "Yalnızca benim işlerim" filtresi ve bekleyen işlerde "başlatan: …" bilgisi (yalnızca build
+  işleri; release işlerinde başlatan okunmaz)
+- Havuzdaki en yeni agent sürümünün gerisindeki agent'lar "Eski sürüm" olarak işaretlenir
 - Uzun kuyruklarda ilk 10 grup gösterilir; "Tümünü göster" ile liste kendi içinde kayar
 - 30 saniyede bir otomatik yenileme (kapatılabilir)
 
@@ -88,7 +93,7 @@ gerektirir. Özel yayın için değeri `false` yapın.
 
 | Dosya | İçerik |
 | --- | --- |
-| `vss-extension.json` | Manifest: hub katkı noktası, `vso.agentpools` scope'u |
+| `vss-extension.json` | Manifest: hub katkı noktası, `vso.agentpools` ve `vso.build` scope'ları |
 | `src/hub/hub.tsx` | Arayüz ve SDK başlatma |
 | `src/hub/api.ts` | REST çağrıları (`api-version=7.0`) |
 | `src/hub/metrics.ts` | Sağlık kuralları ve hesaplamalar (saf fonksiyonlar, testli) |
@@ -126,9 +131,13 @@ Bu sürüm yalnızca örnek veriyle ve birim testleriyle denendi; gerçek bir Az
 8. **Deployment havuzları.** Deployment havuzlarının listelendiğini, agent'larının okunduğunu ve
    "Havuz ayarlarını aç" bağlantısının (`_settings/deploymentpools?poolId=…`) doğru sayfaya
    gittiğini kontrol edin; bu adres doğrulanmadı.
-9. **CSV indirme.** Sayfa Azure DevOps içinde bir çerçevede çalışır; tarayıcının bu çerçeveden
+9. **İşi başlatan kişi.** İş kaydındaki `planType`, `scopeId` ve `owner.id` alanlarıyla
+   `{proje}/_apis/build/builds?buildIds=…` sorgulanır (`vso.build`). Bu alanlar gelmezse ya da
+   sorgu reddedilirse "Yalnızca benim işlerim" düğmesi hiç görünmez. Yeni scope nedeniyle
+   güncellemeden sonra extension'ın collection yöneticisi tarafından yeniden onaylanması gerekir.
+10. **CSV indirme.** Sayfa Azure DevOps içinde bir çerçevede çalışır; tarayıcının bu çerçeveden
    dosya indirmeye izin verdiğini kontrol edin.
-10. **Tema.** Koyu temada renklerin okunur olduğunu kontrol edin.
+11. **Tema.** Koyu temada renklerin okunur olduğunu kontrol edin.
 
 ## Lisans ve sürüm notları
 

@@ -80,7 +80,15 @@ export interface Strings {
   csvPoolType: { automation: string; deployment: string };
   agentListError: (detail: string) => string;
   queueUnreadable: string;
-  mixedVersions: (versions: string) => string;
+  outdatedNote: (n: number, latest: string) => string;
+  outdatedBadge: string;
+  driftTitle: (missing: number, different: number) => string;
+  driftOnlyMissing: string;
+  driftMissing: string;
+  driftNone: string;
+  colCapability: string;
+  filterMine: string;
+  requestedBy: (name: string) => string;
   queuedJobs: string;
   showAllQueued: (count: number) => string;
   showFewerQueued: string;
@@ -190,7 +198,15 @@ const tr: Strings = {
   csvPoolType: { automation: "Agent", deployment: "Deployment" },
   agentListError: (d) => `Agent listesi okunamadı (${d}). Bu havuzda okuma yetkiniz olmayabilir.`,
   queueUnreadable: "İş kuyruğu okunamadı; bekleyen iş sayısı ve bekleme süresi gösterilemiyor.",
-  mixedVersions: (v) => `Farklı agent sürümleri var: ${v}`,
+  outdatedNote: (n, latest) => `${n} agent eski sürümde (havuzdaki en yeni: ${latest})`,
+  outdatedBadge: "Eski sürüm",
+  driftTitle: (m, d) => `Yetenek farkları: ${m} eksik, ${d} farklı değer`,
+  driftOnlyMissing: "Yalnızca eksikler",
+  driftMissing: "yok",
+  driftNone: "Gösterilecek fark yok.",
+  colCapability: "Yetenek",
+  filterMine: "Yalnızca benim işlerim",
+  requestedBy: (name) => `başlatan: ${name}`,
   queuedJobs: "Bekleyen işler",
   showAllQueued: (n) => `Tümünü göster (${n})`,
   showFewerQueued: "Daha az göster",
@@ -322,7 +338,16 @@ const en: Strings = {
   csvPoolType: { automation: "Agent", deployment: "Deployment" },
   agentListError: (d) => `Could not read the agent list (${d}). You may not have read permission on this pool.`,
   queueUnreadable: "Could not read the job queue; queued job count and wait time are unavailable.",
-  mixedVersions: (v) => `Mixed agent versions: ${v}`,
+  outdatedNote: (n, latest) =>
+    `${n} ${n === 1 ? "agent is" : "agents are"} on an older version (newest in pool: ${latest})`,
+  outdatedBadge: "Outdated",
+  driftTitle: (m, d) => `Capability differences: ${m} missing, ${d} different values`,
+  driftOnlyMissing: "Missing only",
+  driftMissing: "missing",
+  driftNone: "No differences to show.",
+  colCapability: "Capability",
+  filterMine: "My jobs only",
+  requestedBy: (name) => `requested by ${name}`,
   queuedJobs: "Queued jobs",
   showAllQueued: (n) => `Show all (${n})`,
   showFewerQueued: "Show fewer",

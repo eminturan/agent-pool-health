@@ -17,16 +17,21 @@ import { inventoryRows, toCsv } from "./export";
 import {
   agentState,
   Capability,
+  capabilityDrift,
   capabilityList,
   explainWait,
   filterRows,
   findUnusedAgents,
   formatDuration,
   groupQueue,
+  hasMine,
   Health,
   inScope,
   isLongRunning,
+  isMine,
+  isOutdated,
   isStaleRequest,
+  latestVersion,
   occupancy,
   PoolScope,
   PoolSummary,
@@ -120,7 +125,7 @@ function CapabilityList({ caps }: { caps: Capability[] }) {
   );
 }
 
-function AgentRow({ agent, now }: { agent: Agent; now: number }) {
+function AgentRow({ agent, now, latest }: { agent: Agent; now: number; latest: string | null }) {
   const t = useStrings();
   const [showCaps, setShowCaps] = React.useState(false);
   const state = agentState(agent);
@@ -149,7 +154,10 @@ function AgentRow({ agent, now }: { agent: Agent; now: number }) {
           <div className="aph-muted aph-badge-note">{t.changedAgo(since(agent.statusChangedOn, now, t))}</div>
         )}
       </td>
-      <td>{agent.version}</td>
+      <td>
+        <div>{agent.version}</div>
+        {isOutdated(agent, latest) && <span className="aph-badge aph-badge-warning">{t.outdatedBadge}</span>}
+      </td>
       <td>
         {job ? (
           <>
@@ -206,7 +214,10 @@ function QueueGroupRow({ group, agents, now }: { group: QueueGroup; agents: Agen
               × {group.jobs.length} {open ? "▾" : "▸"}
             </button>
           )}
-          <div className="aph-muted">{t.waitReason(explainWait(oldest, agents))}</div>
+          <div className="aph-muted">
+            {t.waitReason(explainWait(oldest, agents))}
+            {!many && oldest.requestedFor?.displayName && ` · ${t.requestedBy(oldest.requestedFor.displayName)}`}
+          </div>
         </span>
         <span className="aph-muted aph-nowrap">{many ? t.oldestWaiting(waited(oldest)) : t.waiting(waited(oldest))}</span>
       </div>
@@ -216,6 +227,9 @@ function QueueGroupRow({ group, agents, now }: { group: QueueGroup; agents: Agen
             <li key={r.requestId}>
               <span>
                 <JobName job={r} label={t.request(r.requestId)} />
+                {r.requestedFor?.displayName && (
+                  <span className="aph-muted"> · {t.requestedBy(r.requestedFor.displayName)}</span>
+                )}
               </span>
               <span className="aph-muted aph-nowrap">{t.waiting(waited(r))}</span>
             </li>
@@ -280,13 +294,75 @@ function UsageList({ requests }: { requests: JobRequest[] }) {
   );
 }
 
-function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; url?: string }) {
-  const { data, summary, now } = props;
+/** Havuzdaki agent'ların yetenek farkları: satırlar yetenek, sütunlar agent. Kapalı gelir. */
+function DriftTable({ agents }: { agents: Agent[] }) {
   const t = useStrings();
-  const [open, setOpen] = React.useState(summary.health === "warning" || summary.health === "critical");
-  const mixed = summary.versions.length > 1;
+  const [open, setOpen] = React.useState(false);
+  const [onlyMissing, setOnlyMissing] = React.useState(true);
+  const drift = capabilityDrift(agents);
+  if (!drift.rows.length) return null;
+  const missing = drift.rows.filter((r) => r.kind === "missing");
+  const rows = onlyMissing ? missing : drift.rows;
+  return (
+    <div className="aph-queue">
+      <button className="aph-more" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {t.driftTitle(missing.length, drift.rows.length - missing.length)} {open ? "▾" : "▸"}
+      </button>
+      {open && (
+        <>
+          <div>
+            <button
+              className={`aph-chip${onlyMissing ? " aph-chip-on" : ""}`}
+              aria-pressed={onlyMissing}
+              onClick={() => setOnlyMissing(!onlyMissing)}
+            >
+              {t.driftOnlyMissing}
+            </button>
+          </div>
+          {rows.length === 0 && <div className="aph-muted aph-drift-empty">{t.driftNone}</div>}
+          {rows.length > 0 && (
+            <div className="aph-drift">
+              <table className="aph-table">
+                <thead>
+                  <tr>
+                    <th>{t.colCapability}</th>
+                    {drift.agents.map((a) => (
+                      <th key={a.id}>{a.name}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.name}>
+                      <td>{row.name}</td>
+                      {row.values.map((value, i) => (
+                        <td key={drift.agents[i].id} title={value ?? undefined}>
+                          {value === null ? (
+                            <span className="aph-badge aph-badge-offline">{t.driftMissing}</span>
+                          ) : (
+                            <span className="aph-drift-value">{value}</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; url?: string; mineId?: string }) {
+  const { data, summary, now, mineId } = props;
+  const t = useStrings();
+  const [open, setOpen] = React.useState(summary.health === "warning" || summary.health === "critical" || !!mineId);
+  const latest = latestVersion(data.agents);
   const queued = (data.requests ?? [])
-    .filter((r) => requestState(r) === "queued")
+    .filter((r) => requestState(r) === "queued" && (!mineId || isMine(r, mineId)))
     .sort((a, b) => (waitSeconds(b, now) ?? 0) - (waitSeconds(a, now) ?? 0));
   const stale = queued.filter((r) => isStaleRequest(r, now));
   const fresh = queued.filter((r) => !isStaleRequest(r, now));
@@ -331,8 +407,8 @@ function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; ur
             {data.requests === null && (
               <div className="aph-muted aph-note">{t.queueUnreadable}</div>
             )}
-            {mixed && (
-              <div className="aph-muted aph-note">{t.mixedVersions(summary.versions.join(", "))}</div>
+            {summary.outdated > 0 && latest && (
+              <div className="aph-muted aph-note">{t.outdatedNote(summary.outdated, latest)}</div>
             )}
             <QueueList title={t.queuedJobs} items={fresh} agents={data.agents} now={now} preview={QUEUE_PREVIEW} />
             {/* Bayat işler kapalı gelir; yalnızca istenirse listelenir. */}
@@ -351,12 +427,13 @@ function PoolCard(props: { data: PoolData; summary: PoolSummary; now: number; ur
                 </thead>
                 <tbody>
                   {data.agents.map((a) => (
-                    <AgentRow key={a.id} agent={a} now={now} />
+                    <AgentRow key={a.id} agent={a} now={now} latest={latest} />
                   ))}
                 </tbody>
               </table>
             )}
             {!data.error && data.agents.length === 0 && <div className="aph-muted aph-note">{t.emptyPool}</div>}
+            <DriftTable agents={data.agents} />
             {props.url && (
               <a className="aph-link" href={props.url} target="_blank" rel="noopener noreferrer">
                 {t.openPoolSettings}
@@ -449,6 +526,7 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
   const [onlyProblems, setOnlyProblems] = React.useState(false);
   const [hideInactive, setHideInactive] = React.useState(false);
   const [scope, setScope] = React.useState<PoolScope>("all");
+  const [onlyMine, setOnlyMine] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -480,7 +558,17 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
   const scoped = (pools ?? []).filter((p) => inScope(p, hasDeployment ? scope : "all"));
   const rows = sortByHealth(scoped.map((data) => ({ data, summary: summarizePool(data, now) })));
   const totals = summarizeAll(rows.map((r) => r.summary));
-  const visible = filterRows(rows, { query, onlyProblems, hideInactive });
+  // "Yalnızca benim işlerim" ancak işi başlatan kişi okunabildiyse sunulur.
+  const me = source.currentUser?.id;
+  const canMine =
+    !!me &&
+    scoped.some(
+      (p) => (p.requests ?? []).some((r) => r.requestedFor) || p.agents.some((a) => a.assignedRequest?.requestedFor),
+    );
+  const mineId = canMine && onlyMine ? me : undefined;
+  const visible = filterRows(rows, { query, onlyProblems, hideInactive }).filter(
+    (r) => !mineId || hasMine(r.data, mineId),
+  );
   const unused = findUnusedAgents(scoped, now);
   const queueNotes = [
     totals.stale ? t.staleNote(totals.stale, formatDuration(STALE_SEC, t.units)) : "",
@@ -586,11 +674,26 @@ function App({ source, demo }: { source: DataSource; demo: boolean }) {
                 >
                   {t.filterHideInactive}
                 </button>
+                {canMine && (
+                  <button
+                    className={`aph-chip${onlyMine ? " aph-chip-on" : ""}`}
+                    aria-pressed={onlyMine}
+                    onClick={() => setOnlyMine(!onlyMine)}
+                  >
+                    {t.filterMine}
+                  </button>
+                )}
               </div>
             )}
             {rows.length > 0 && visible.length === 0 && <div className="aph-muted">{t.noMatches}</div>}
             {visible.map((r) => (
-              <PoolCard key={r.data.pool.id} {...r} now={now} url={source.poolUrl?.(r.data.pool)} />
+              <PoolCard
+                key={`${r.data.pool.id}-${mineId ?? ""}`}
+                {...r}
+                now={now}
+                url={source.poolUrl?.(r.data.pool)}
+                mineId={mineId}
+              />
             ))}
             <UnusedCard items={unused} />
           </>
@@ -630,7 +733,12 @@ async function start() {
       () => window.parent.document.documentElement.lang,
       () => navigator.language,
     ]);
-    render(createRestSource(baseUrl, () => SDK.getAccessToken()), false, culture);
+    const user = SDK.getUser();
+    const source: DataSource = {
+      ...createRestSource(baseUrl, () => SDK.getAccessToken()),
+      currentUser: user?.id ? { id: user.id, displayName: user.displayName } : undefined,
+    };
+    render(source, false, culture);
     await SDK.notifyLoadSucceeded();
   } catch (e) {
     await SDK.notifyLoadFailed(e instanceof Error ? e : String(e));
