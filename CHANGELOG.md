@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.3
+
+- Restored the repository and issues links in the manifest so that the Marketplace shows project details
+
 ## 0.8.2
 
 - Removed the source repository links from the Marketplace page and the manifest
