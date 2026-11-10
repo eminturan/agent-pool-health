@@ -1,0 +1,457 @@
+/* Renkler Azure DevOps tema değişkenlerinden gelir; değişken yoksa açık tema değerleri kullanılır. */
+body {
+  margin: 0;
+  background: var(--background-color, #fff);
+  color: var(--text-primary-color, rgba(0, 0, 0, 0.9));
+}
+
+/* azure-devops-ui body'yi flex yapar; #root genişliği verilmezse sayfa içeriği kadar daralır ve
+   bir kart açılınca genişler. */
+#root {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.aph-page {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+.aph-content {
+  padding: 8px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aph-muted {
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+  font-size: 12px;
+}
+
+.aph-note {
+  padding: 8px 20px 0;
+}
+
+/* Özet kutuları */
+.aph-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.aph-tile {
+  padding: 16px 20px;
+  border-radius: 4px;
+  border-left: 4px solid var(--status-success-foreground, #107c10);
+  background: var(--callout-background-color, #fff);
+  box-shadow: 0 1.6px 3.6px rgba(0, 0, 0, 0.13), 0 0.3px 0.9px rgba(0, 0, 0, 0.11);
+}
+
+.aph-tile.aph-tone-warning {
+  border-left-color: var(--status-warning-foreground, #d67f3c);
+}
+
+.aph-tile.aph-tone-critical {
+  border-left-color: var(--status-error-foreground, #cd4a45);
+}
+
+.aph-tile-value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.aph-tile-label {
+  font-size: 13px;
+}
+
+.aph-tile-note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+}
+
+/* Kapsam seçici: Tümü / Agent havuzları / Deployment havuzları */
+.aph-scope {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.aph-scope-item {
+  padding: 6px 14px;
+  border: 0;
+  border-right: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.2));
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.aph-scope-item:last-child {
+  border-right: 0;
+}
+
+.aph-scope-on {
+  background: var(--communication-background, #0078d4);
+  color: #fff;
+}
+
+/* Filtre çubuğu */
+.aph-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.aph-search {
+  flex: 1 1 220px;
+  max-width: 360px;
+  padding: 6px 10px;
+  border: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 2px;
+  background: var(--callout-background-color, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+.aph-search:focus {
+  outline: 2px solid var(--communication-background, #0078d4);
+  outline-offset: -1px;
+}
+
+.aph-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 16px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.aph-chip-on {
+  border-color: var(--communication-background, #0078d4);
+  background: var(--communication-background, #0078d4);
+  color: #fff;
+}
+
+.aph-joblink {
+  color: var(--communication-foreground, #005a9e);
+  text-decoration: none;
+}
+
+.aph-joblink:hover {
+  text-decoration: underline;
+}
+
+.aph-nowrap {
+  white-space: nowrap;
+}
+
+/* Havuz kartı */
+.aph-pool {
+  width: 100%;
+}
+
+.aph-pool-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 20px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aph-pool-head:hover {
+  background: var(--component-grid-row-hover-color, rgba(0, 0, 0, 0.03));
+}
+
+.aph-pool-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.aph-pool-name {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.aph-stats {
+  display: flex;
+  gap: 28px;
+}
+
+.aph-stat {
+  min-width: 72px;
+  text-align: right;
+}
+
+.aph-stat-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.aph-meter {
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.1));
+}
+
+.aph-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--communication-background, #0078d4);
+}
+
+.aph-meter-full > span {
+  background: var(--status-warning-foreground, #d67f3c);
+}
+
+.aph-table tr.aph-caps-row td {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.aph-caps {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.04));
+}
+
+.aph-caps-list {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 2fr;
+  gap: 4px 16px;
+  max-height: 240px;
+  margin: 8px 0 0;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.aph-caps-list dt {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.aph-caps-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.aph-chevron {
+  width: 16px;
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+}
+
+.aph-pool-body {
+  padding-bottom: 16px;
+  border-top: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.08));
+}
+
+.aph-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+}
+
+.aph-queue {
+  padding: 16px 20px 0;
+}
+
+.aph-queue ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aph-queue li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.aph-queue li.aph-qgroup {
+  display: block;
+}
+
+.aph-qrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.aph-count {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.2));
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aph-queue ul.aph-qjobs {
+  margin: 4px 0 4px 16px;
+  max-height: 200px;
+}
+
+.aph-queue li.aph-usage {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.aph-usage-name {
+  flex: 0 1 240px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.aph-usage-bar {
+  flex: 1 1 80px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.06));
+}
+
+.aph-usage-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--communication-background, #0078d4);
+}
+
+.aph-pool-tag {
+  margin-left: 8px;
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.aph-queue-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 8px !important;
+}
+
+.aph-more {
+  margin-top: 4px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--communication-foreground, #005a9e);
+  cursor: pointer;
+}
+
+.aph-more:hover {
+  text-decoration: underline;
+}
+
+.aph-table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.aph-table th {
+  padding: 8px 20px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+}
+
+.aph-table td {
+  padding: 8px 20px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+  border-top: 1px solid var(--component-grid-cell-bottom-border-color, rgba(0, 0, 0, 0.08));
+}
+
+.aph-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: var(--status-success-background, #dff6dd);
+  color: var(--status-success-text, #0b5a08);
+}
+
+.aph-badge-note {
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.aph-badge-warning {
+  margin-top: 2px;
+  background: var(--status-warning-background, #fff4ce);
+  color: var(--status-warning-text, #8a5300);
+}
+
+.aph-badge-busy {
+  background: var(--status-info-background, #deecf9);
+  color: var(--status-info-text, #004e8c);
+}
+
+.aph-badge-offline {
+  background: var(--status-error-background, #f9ebeb);
+  color: var(--status-error-text, #a4262c);
+}
+
+.aph-badge-disabled {
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.06));
+  color: var(--text-secondary-color, rgba(0, 0, 0, 0.55));
+}
+
+.aph-link {
+  display: inline-block;
+  margin: 12px 20px 0;
+  font-size: 13px;
+  color: var(--communication-foreground, #005a9e);
+}
+
+@media (max-width: 760px) {
+  .aph-content {
+    padding: 8px 16px 24px;
+  }
+  .aph-pool-head {
+    flex-wrap: wrap;
+  }
+  .aph-stats {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .aph-stat {
+    text-align: left;
+  }
+  .aph-pool-body {
+    overflow-x: auto;
+  }
+}
